@@ -12,15 +12,15 @@ from torch.utils.data import Dataset, DataLoader
 # Config
 @dataclass
 class TrainConfig:
-    data_root: str = "data"         # contiene printed/ y/o handwritten/
-    subset: str = "printed"         # "printed" o "handwritten" o "mixed" (ver abajo)
+    data_root = "Images"      
+    subset = "mayusculas"          
     img_size: int = 32
     batch_size: int = 128
     lr: float = 1e-3
     epochs: int = 12
     seed: int = 7
-    out_model: str = "models/ocr_cnn.pt"
-    out_labels: str = "models/labels.txt"
+    out_model = "Models/ocr_cnn_mayusculas.pt"
+    out_labels = "Models/labels_mayusculas.txt"
 
 cfg = TrainConfig()
 
