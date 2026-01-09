@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+
+Images/
+Processed/
+Printed/
+
+outputs/
+outputs_demo/
+
+Models/*.pt
+Models/*.pth
+
+.DS_Store

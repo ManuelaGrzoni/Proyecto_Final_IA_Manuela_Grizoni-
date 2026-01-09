@@ -16,14 +16,15 @@ from torch.utils.data import Dataset, DataLoader
 @dataclass
 class TrainConfig:
     data_root: str = "Processed"          # carpeta que contiene mayusculas/minusculas/numeros
-    subset: str = "numeros"         # "mayusculas" | "minusculas" | "numeros"
+    subset: str = "minusculas"         # "mayusculas" | "minusculas" | "numeros"
     img_size: int = 32
     batch_size: int = 128
     lr: float = 1e-3
-    epochs: int = 30
+    epochs: int = 15
     seed: int = 7
-    out_model: str = "Models/ocr_cnn_numeros.pt"
-    out_labels: str = "Models/labels_numeros.txt"
+    out_model: str = "Models/ocr_cnn_minusculas.pt"
+    out_labels: str = "Models/labels_minusculas.txt"
+
 
 cfg = TrainConfig()
 
