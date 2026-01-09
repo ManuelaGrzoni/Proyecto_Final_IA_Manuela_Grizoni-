@@ -5,6 +5,12 @@ __pycache__/
 Images/
 Processed/
 Printed/
+outputs/
+Models/*.pt
+.venv/
+__pycache__/
+*.pyc
+
 
 outputs/
 outputs_demo/
