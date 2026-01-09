@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+
 # ---- mismo modelo que train.py ----
 class SimpleCNN(nn.Module):
     def __init__(self, n_classes: int):
@@ -24,30 +25,35 @@ class SimpleCNN(nn.Module):
         x = x.view(x.size(0), -1)
         return self.fc(x)
 
+
 def preprocess_page(img_bgr):
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-    # Binarización robusta
-    th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                               cv2.THRESH_BINARY_INV, 31, 8)
+    # Binarización robusta (tinta = blanco en th)
+    th = cv2.adaptiveThreshold(
+        gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        31, 8
+    )
 
     # Une trazos
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     th = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel, iterations=1)
     return gray, th
 
-def extract_components(th):
-    # Encuentra contornos = posibles caracteres
-    cnts, _ = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+def extract_components(th):
+    cnts, _ = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     boxes = []
     H, W = th.shape
+
     for c in cnts:
         x, y, w, h = cv2.boundingRect(c)
         area = w * h
 
-        # filtros (ajusta según tu dataset)
+        # Filtros básicos (ajusta si hace falta)
         if area < 60:
             continue
         if h < 8 or w < 3:
@@ -57,10 +63,9 @@ def extract_components(th):
 
         boxes.append((x, y, w, h))
 
-    # Orden aproximado por líneas (y) y por x
-    # Agrupación simple: ordena por y, luego x
     boxes.sort(key=lambda b: (b[1], b[0]))
     return boxes
+
 
 def crop_and_normalize(gray, box, img_size):
     x, y, w, h = box
@@ -83,12 +88,19 @@ def crop_and_normalize(gray, box, img_size):
     s = max(h2, w2)
     pad_y = (s - h2) // 2
     pad_x = (s - w2) // 2
-    th = cv2.copyMakeBorder(th, pad_y, s - h2 - pad_y, pad_x, s - w2 - pad_x,
-                            borderType=cv2.BORDER_CONSTANT, value=0)
+    th = cv2.copyMakeBorder(
+        th,
+        pad_y, s - h2 - pad_y,
+        pad_x, s - w2 - pad_x,
+        borderType=cv2.BORDER_CONSTANT,
+        value=0
+    )
     th = cv2.resize(th, (img_size, img_size), interpolation=cv2.INTER_AREA)
-    th = (th.astype(np.float32) / 255.0)
-    x = torch.tensor(th).unsqueeze(0).unsqueeze(0)  # (1,1,H,W)
-    return x
+    th = th.astype(np.float32) / 255.0
+
+    x_t = torch.tensor(th).unsqueeze(0).unsqueeze(0)  # (1,1,H,W)
+    return x_t, (th * 255).astype(np.uint8)  # devuelve también imagen normalizada (para guardar crop)
+
 
 def group_lines(boxes, y_thresh=18):
     # agrupa por líneas según centro y
@@ -100,18 +112,17 @@ def group_lines(boxes, y_thresh=18):
         for line in lines:
             if abs(line["cy"] - cy) < y_thresh:
                 line["boxes"].append(b)
-                # actualiza cy promedio
                 line["cy"] = (line["cy"] * (len(line["boxes"]) - 1) + cy) / len(line["boxes"])
                 placed = True
                 break
         if not placed:
             lines.append({"cy": cy, "boxes": [b]})
 
-    # ordena líneas y ordena cajas por x
     lines.sort(key=lambda d: d["cy"])
     for line in lines:
         line["boxes"].sort(key=lambda b: b[0])
     return lines
+
 
 def load_model(model_path):
     ckpt = torch.load(model_path, map_location="cpu")
@@ -122,58 +133,121 @@ def load_model(model_path):
     model.eval()
     return model, labels, img_size
 
-def ocr_image(image_path, model_path, out_dir="outputs"):
+
+def choose_model_path(mode: str) -> str:
+    mode = mode.lower().strip()
+    if mode == "mayusculas":
+        return "Models/ocr_cnn_mayusculas.pt"
+    if mode == "minusculas":
+        return "Models/ocr_cnn_minusculas.pt"
+    if mode == "numeros":
+        return "Models/ocr_cnn_numeros.pt"
+    raise ValueError("mode debe ser: mayusculas | minusculas | numeros")
+
+
+def ocr_image(image_path, model_path, out_dir="outputs", save_boxes=True, save_crops=True):
     os.makedirs(out_dir, exist_ok=True)
+
+    crops_dir = os.path.join(out_dir, "crops")
+    if save_crops:
+        os.makedirs(crops_dir, exist_ok=True)
+
     img = cv2.imread(image_path)
     if img is None:
         raise FileNotFoundError(image_path)
 
     model, labels, img_size = load_model(model_path)
 
-    gray, th = preprocess_page(img)
-    boxes = extract_components(th)
+    gray, th_page = preprocess_page(img)
+    boxes = extract_components(th_page)
     lines = group_lines(boxes)
 
     results = []
     text_lines = []
+
+    # Imagen para dibujar cajas
+    vis = img.copy()
+
     with torch.no_grad():
+        char_id = 0
         for li, line in enumerate(lines):
             line_text = ""
             for b in line["boxes"]:
-                x_tensor = crop_and_normalize(gray, b, img_size)
+                x_tensor, norm_img = crop_and_normalize(gray, b, img_size)
                 logits = model(x_tensor)
                 pred = int(torch.argmax(logits, dim=1).item())
                 ch = labels[pred]
                 line_text += ch
 
+                x, y, w, h = b
                 results.append({
                     "char": ch,
-                    "box": {"x": int(b[0]), "y": int(b[1]), "w": int(b[2]), "h": int(b[3])},
+                    "box": {"x": int(x), "y": int(y), "w": int(w), "h": int(h)},
                     "line": li
                 })
+
+                if save_boxes:
+                    cv2.rectangle(vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    cv2.putText(
+                        vis, ch, (x, max(0, y - 5)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+                    )
+
+                if save_crops:
+                    crop_name = f"{li:02d}_{char_id:04d}_{ch}.png"
+                    cv2.imwrite(os.path.join(crops_dir, crop_name), norm_img)
+                char_id += 1
+
             text_lines.append(line_text)
 
     base = os.path.splitext(os.path.basename(image_path))[0]
     txt_path = os.path.join(out_dir, base + ".txt")
     json_path = os.path.join(out_dir, base + ".json")
+    boxes_path = os.path.join(out_dir, base + "_boxes.png")
 
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write("\n".join(text_lines))
 
     with open(json_path, "w", encoding="utf-8") as f:
-        json.dump({"image": image_path, "lines": text_lines, "items": results}, f, ensure_ascii=False, indent=2)
+        json.dump(
+            {"image": image_path, "model": model_path, "lines": text_lines, "items": results},
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
 
-    return txt_path, json_path
+    if save_boxes:
+        cv2.imwrite(boxes_path, vis)
+
+    return txt_path, json_path, (boxes_path if save_boxes else "")
+
 
 if __name__ == "__main__":
     import argparse
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--image", required=True)
-    ap.add_argument("--model", required=True, help="models/ocr_cnn.pt")
+    ap.add_argument("--mode", choices=["mayusculas", "minusculas", "numeros"], default="mayusculas")
+    ap.add_argument("--model", default="", help="(opcional) ruta directa al .pt si no quieres usar --mode")
     ap.add_argument("--out", default="outputs")
+    ap.add_argument("--no-boxes", action="store_true")
+    ap.add_argument("--no-crops", action="store_true")
     args = ap.parse_args()
 
-    txt, js = ocr_image(args.image, args.model, args.out)
+    model_path = args.model.strip() if args.model.strip() else choose_model_path(args.mode)
+
+    txt, js, boxes_img = ocr_image(
+        args.image,
+        model_path,
+        args.out,
+        save_boxes=not args.no_boxes,
+        save_crops=not args.no_crops
+    )
+
     print("✅ OCR guardado en:")
     print(" -", txt)
     print(" -", js)
+    if not args.no_boxes:
+        print(" -", boxes_img)
+    if not args.no_crops:
+        print(" -", os.path.join(args.out, "crops"))
