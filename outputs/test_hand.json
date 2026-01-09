@@ -1,6 +1,0 @@
-{
-  "image": "test_hand.png",
-  "model": "Models/ocr_cnn_mayusculas.pt",
-  "lines": [],
-  "items": []
-}
