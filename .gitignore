@@ -5,12 +5,15 @@ __pycache__/
 Images/
 Processed/
 Printed/
+<<<<<<< HEAD
 outputs/
 Models/*.pt
 .venv/
 __pycache__/
 *.pyc
 
+=======
+>>>>>>> e1fb152b93e7e05370649bbd607e787443a8c3a3
 
 outputs/
 outputs_demo/
