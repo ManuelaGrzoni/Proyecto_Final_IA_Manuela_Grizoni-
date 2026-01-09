@@ -1,15 +1,18 @@
-.venv/
-__pycache__/
-*.pyc
+@"
+# Datasets / outputs (no subir)
+Images/**
+Printed/**
+Processed/**
+outputs/**
 
-Images/
-Processed/
-Printed/
-
-outputs/
-outputs_demo/
-
+# Modelos entrenados
 Models/*.pt
 Models/*.pth
+Models/*.onnx
 
-.DS_Store
+# Python / venv
+.venv/**
+__pycache__/**
+*.pyc
+"@ | Out-File -Encoding utf8 .gitignore
+
