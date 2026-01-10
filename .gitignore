@@ -12,6 +12,9 @@ Images/
 Printed/
 Processed/
 outputs/
+_Images_local_backup/
+_Printed_local_backup/
+_Processed_local_backup/
 
 # === Modelos entrenados (NO subir) ===
 Models/*.pt
@@ -21,3 +24,8 @@ Models/*.onnx
 # === Basura de sistema ===
 .DS_Store
 Thumbs.db
+
+_Images_local_backup/
+_Printed_local_backup/
+_Processed_local_backup/
+
