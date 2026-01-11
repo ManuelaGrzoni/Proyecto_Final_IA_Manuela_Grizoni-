@@ -1,12 +1,12 @@
 {
-  "image": "test_line.png",
+  "image": ".\\examples\\test_line.png",
   "model": "Models/ocr_cnn_mayusculas.pt",
   "lines": [
-    "HBWWWURWBRRRB"
+    "NQMNNURNBRRRR"
   ],
   "items": [
     {
-      "char": "H",
+      "char": "N",
       "box": {
         "x": 30,
         "y": 92,
@@ -16,7 +16,7 @@
       "line": 0
     },
     {
-      "char": "B",
+      "char": "Q",
       "box": {
         "x": 76,
         "y": 92,
@@ -26,7 +26,7 @@
       "line": 0
     },
     {
-      "char": "W",
+      "char": "M",
       "box": {
         "x": 120,
         "y": 92,
@@ -36,7 +36,7 @@
       "line": 0
     },
     {
-      "char": "W",
+      "char": "N",
       "box": {
         "x": 169,
         "y": 92,
@@ -46,7 +46,7 @@
       "line": 0
     },
     {
-      "char": "W",
+      "char": "N",
       "box": {
         "x": 248,
         "y": 92,
@@ -76,7 +76,7 @@
       "line": 0
     },
     {
-      "char": "W",
+      "char": "N",
       "box": {
         "x": 411,
         "y": 92,
@@ -126,7 +126,7 @@
       "line": 0
     },
     {
-      "char": "B",
+      "char": "R",
       "box": {
         "x": 631,
         "y": 91,

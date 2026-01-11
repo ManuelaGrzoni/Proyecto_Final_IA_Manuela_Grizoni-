@@ -1,5 +1,5 @@
 {
-  "image": "demo_numeros.png",
+  "image": ".\\examples\\demo_numeros.png",
   "model": "Models/ocr_cnn_numeros.pt",
   "lines": [
     "88880888"

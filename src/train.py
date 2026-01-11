@@ -15,8 +15,8 @@ from torch.utils.data import Dataset, DataLoader
 # -----------------------
 @dataclass
 class TrainConfig:
-    data_root: str = "Processed"          # carpeta que contiene mayusculas/minusculas/numeros
-    subset: str = "minusculas"         # "mayusculas" | "minusculas" | "numeros"
+    data_root: str = "_Processed_local_backup"          # carpeta que contiene mayusculas/minusculas/numeros
+    subset: str = "numeros"         # "mayusculas" | "minusculas" | "numeros"
     img_size: int = 32
     batch_size: int = 128
     lr: float = 1e-3
